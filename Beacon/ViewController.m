@@ -14,13 +14,14 @@
 @property (strong, nonatomic) CBMutableCharacteristic * transferCharacteristic;
 @property (nonatomic, strong) NSMutableArray * logs;
 @property (nonatomic, strong) NSString * uniqueIdentifier;
+@property (nonatomic, strong) IBOutlet UITextView * uuidView;
 @property (nonatomic, strong) IBOutlet UITextField * uuidField;
 @property (nonatomic, strong) IBOutlet UITextField * majorField;
 @property (nonatomic, strong) IBOutlet UITextField * minorField;
 @property (nonatomic, strong) IBOutlet UITextField * idField;
 @property (nonatomic, strong) IBOutlet UIButton * startButton;
 @property (nonatomic, strong) IBOutlet UIButton * stopButton;
-@property (nonatomic, strong) IBOutlet UILabel * logsLabel;
+@property (nonatomic, strong) IBOutlet UITextView * logsLabel;
 
 @end
 
@@ -34,12 +35,14 @@
     [self setPeripheralManager:[[CBPeripheralManager alloc] initWithDelegate:self queue:nil]];
     [[self startButton] setHidden:NO];
     [[self stopButton] setHidden:YES];
+    [[self uuidView] setEditable:NO];
+    [[self logsLabel] setEditable:NO];
 }
 
 -(IBAction)startAdvertising:(id)sender{
     
     [self setUniqueIdentifier:[self getUUID]];
-    [[self uuidField] setText:[self uniqueIdentifier]];
+    [[self uuidView] setText:[NSString stringWithFormat:@"Advertising with UUID: %@", [self uniqueIdentifier]]];
     
     CLBeaconRegion * region = [[CLBeaconRegion alloc] initWithProximityUUID:[[NSUUID alloc] initWithUUIDString:[self uniqueIdentifier]] major:[[[self majorField] text] intValue] minor:[[[self minorField] text] intValue] identifier:[[self idField] text]];
     
@@ -48,6 +51,9 @@
     
     [[self startButton] setHidden:YES];
     [[self stopButton] setHidden:NO];
+    [[self idField] resignFirstResponder];
+    [[self majorField] resignFirstResponder];
+    [[self minorField] resignFirstResponder];
 }
 
 -(IBAction)stopAdvertising:(id)sender{
@@ -57,11 +63,11 @@
     [[self startButton] setHidden:NO];
     [[self stopButton] setHidden:YES];
     
-    [[self uuidField] setText:@""];
+    [[self logsLabel] setText:@""];
+    [[self uuidView] setText:@""];
     [[self majorField] setText:@""];
     [[self minorField] setText:@""];
     [[self idField] setText:@""];
-    [[self uuidField] resignFirstResponder];
     [[self idField] resignFirstResponder];
     [[self majorField] resignFirstResponder];
     [[self minorField] resignFirstResponder];
@@ -104,18 +110,26 @@
 }
 
 
+-(void)addToLog:(NSString *)log{
+    [[self logsLabel] setText:[NSString stringWithFormat:@"%@\n%@", [[self logsLabel] text], log]];
+}
+
+
 #pragma mark CBPeripheralManagerDelegates methods
 - (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral{
     [[self logs] addObject:peripheral];
+    [self addToLog:@"peripheralManagerDidUpdateState"];
 }
 
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral central:(CBCentral *)central didSubscribeToCharacteristic:(CBCharacteristic *)characteristic{
     [[self logs] addObject:central];
+    [self addToLog:@"didSubscribeToCharacteristic"];
 }
 
 - (void)peripheralManagerDidStartAdvertising:(CBPeripheralManager *)peripheral error:(NSError *)error{
     [[self logs] addObject:error];
+    [self addToLog:@"peripheralManagerDidStartAdvertising"];
 }
 
 - (void)didReceiveMemoryWarning
